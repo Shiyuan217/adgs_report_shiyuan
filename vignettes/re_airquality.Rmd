@@ -1,0 +1,87 @@
+---
+title: "New York Air Quality Data Analysis Report"
+author: "Shiyuan"
+date: "2025-03-10"
+output: html_document
+---
+# I. Introduction to the dataset
+This report is based on the R language built-in dataset airquality, which records daily air quality and meteorological related data from May to September 1973 in New York City. The data were obtained primarily from the following two agencies:
+Ozone data: New York State Department of Conservation (NYSDEC)
+Meteorological data from the National Weather Service.
+
+Data set basic information:
+Observations (number of rows): 153 days
+Variables (number of columns): 6
+
+# II: Research purpose
+With increasing urbanisation, air quality problems are becoming more and more prominent, especially during high summer temperatures, when ozone pollution has a great impact on human health and urban ecosystems. The main objective of this study is to explore the temporal variation patterns of ozone concentration and its relationship with meteorological factors (temperature, wind speed, solar radiation) by analysing the summer air quality data of New York City in 1973, with a view to providing data support and scientific basis for understanding the mechanism of ozone generation and meteorological drivers.
+Specific objectives include:
+
+* To analyse the temporal trend of ozone concentration during the period from May to September;
+* Explore the correlation between ozone concentration and temperature, wind speed and solar radiation;
+* Identify potential extreme pollution events and possible triggers;
+To provide a data base for air pollution warning and meteorological co-management.
+
+# III. Research questions
+This analysis focuses on the following three core questions:
+What are the trends in summer ozone concentrations in New York? Does it vary over time?
+Is there a correlation between meteorological factors (temperature, wind speed, solar radiation) and ozone concentrations?
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r cars}
+# Load data
+data("airquality")
+
+# View basic data information
+head(airquality)
+summary(airquality)
+
+# Handling of missing values
+airquality <- na.omit(airquality)
+
+hist(airquality$Ozone, main="Ozone concentration distribution", xlab="ozone concentration (ppb)", col="lightblue")
+
+plot(airquality$Temp, airquality$Ozone, main="ozone concentration vs temperature", xlab="temperature (°F)", ylab="ozone concentration (ppb)", pch=19, col="blue")
+
+plot(airquality$Wind, airquality$Ozone, main="ozone concentration vs windspeed", xlab="windspeed (mph)", ylab="ozone concentration (ppb)", pch=19, col="green")
+
+plot(airquality$Solar.R, airquality$Ozone, main="ozone concentration vs solar radiation", xlab="solar radiation (lang)", ylab="ozone concentration (ppb)", pch=19, col="orange")
+
+# Creating Date Variables
+airquality$Date <- as.Date(paste(1973, airquality$Month, airquality$Day, sep="-"))
+
+# Plotting time trends
+plot(airquality$Date, airquality$Ozone, type="l", main="Ozone concentration over time", xlab="date", ylab="ozone concentration (ppb)", col="red")
+
+model <- lm(Ozone ~ Temp, data=airquality)
+summary(model)
+
+plot(model, which=1)
+
+may_ozone <- airquality$Ozone[airquality$Month == 5]
+august_ozone <- airquality$Ozone[airquality$Month == 8]
+t.test(may_ozone, august_ozone)
+
+
+```
+# IV. Conclusions and discussion
+
+* Conclusion:
+
+Ozone concentration increased significantly in summer and was most severe in July, consistent with the environmental characteristics of high temperature and high pollution.
+
+There was a significant relationship between meteorological variables and ozone concentrations: temperature was positively correlated and wind speed was negatively correlated.
+
+Several extreme high ozone values (e.g., 168 ppb) existed and need to be further investigated to see if they are related to specific events (e.g., heat waves or peak emission periods).
+
+* Limitations and Outlook:
+
+There are missing data, which may affect the precision of the analysis.
+
+The data is limited to May to September and it is not possible to determine the trend for the whole year.
+
+It can be further explored in more depth using multiple linear regression or time series modelling.

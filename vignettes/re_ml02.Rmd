@@ -1,0 +1,100 @@
+---
+title: "re_ml02.Rmdvignettes"
+author: "Shiyuan"
+date: "2025-05-05"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+# 读取 Davos 和 Laegern 数据
+dav <- read_csv(here("data_raw", "FLX_CH-Dav_FLUXNET2015_FULLSET_DD_1997-2014_1-3.csv"))
+lae <- read_csv(here("data_raw", "FLX_CH-Lae_FLUXNET2015_FULLSET_DD_2004-2014_1-4.csv"))
+```
+
+```{r}
+# 提取通用变量
+features <- c("TA_F", "SW_IN_F", "VPD_F", "P_F", "GPP_NT_VUT_MEAN")
+dav <- dav %>% select(all_of(features)) %>% drop_na()
+lae <- lae %>% select(all_of(features)) %>% drop_na()
+
+# 合并并标记站点
+all_data <- bind_rows(
+  dav %>% mutate(site = "Dav"),
+  lae %>% mutate(site = "Lae")
+)
+
+# 创建 recipe 对象
+rec <- recipe(GPP_NT_VUT_MEAN ~ ., data = all_data) %>%
+  update_role(site, new_role = "id") %>%
+  step_center(all_predictors()) %>%
+  step_scale(all_predictors())
+
+# 应用归一化
+prep_rec <- prep(rec)
+norm_data <- bake(prep_rec, new_data = all_data)
+norm_data
+# 分开归一化后的数据
+dav_norm <- norm_data %>% filter(site == "Dav") %>% select(-site)
+lae_norm <- norm_data %>% filter(site == "Lae") %>% select(-site)
+
+set.seed(42)
+
+split_data <- function(df) {
+  idx <- createDataPartition(df$GPP_NT_VUT_MEAN, p = 0.8, list = FALSE)
+  list(train = df[idx, ], test = df[-idx, ])
+}
+
+dav_split <- split_data(dav_norm)
+lae_split <- split_data(lae_norm)
+both_split <- split_data(bind_rows(dav_norm, lae_norm))
+
+evaluate_knn <- function(train_data, test_data, max_k = 20) {
+  x_train <- train_data %>% select(-GPP_NT_VUT_MEAN)
+  y_train <- train_data$GPP_NT_VUT_MEAN
+  x_test <- test_data %>% select(-GPP_NT_VUT_MEAN)
+  y_test <- test_data$GPP_NT_VUT_MEAN
+  
+  # Tune k based on lowest MSE
+  errors <- sapply(1:max_k, function(k) {
+    preds <- knnreg(x_train, y_train, k = k) %>% predict(x_test)
+    mean((preds - y_test)^2)
+  })
+  best_k <- which.min(errors)
+  
+  # Train final model
+  final_model <- knnreg(x_train, y_train, k = best_k)
+  preds <- predict(final_model, x_test)
+  
+  mse <- mean((preds - y_test)^2)
+  rmse <- sqrt(mse)
+  r2 <- cor(preds, y_test)^2
+  
+  data.frame(
+    k = best_k,
+    MSE = mse,
+    RMSE = rmse,
+    R2 = r2
+  )
+}
+
+
+results <- bind_rows(
+  evaluate_knn(dav_split$train, dav_split$test) %>% mutate(train = "Dav", test = "Dav"),
+  evaluate_knn(dav_split$train, lae_split$test) %>% mutate(train = "Dav", test = "Lae"),
+  evaluate_knn(dav_split$train, both_split$test) %>% mutate(train = "Dav", test = "Both"),
+  
+  evaluate_knn(lae_split$train, dav_split$test) %>% mutate(train = "Lae", test = "Dav"),
+  evaluate_knn(lae_split$train, lae_split$test) %>% mutate(train = "Lae", test = "Lae"),
+  evaluate_knn(lae_split$train, both_split$test) %>% mutate(train = "Lae", test = "Both"),
+  
+  evaluate_knn(both_split$train, dav_split$test) %>% mutate(train = "Both", test = "Dav"),
+  evaluate_knn(both_split$train, lae_split$test) %>% mutate(train = "Both", test = "Lae"),
+  evaluate_knn(both_split$train, both_split$test) %>% mutate(train = "Both", test = "Both")
+)
+
+results %>% select(train, test, k, MSE, R2)
+
+```
+

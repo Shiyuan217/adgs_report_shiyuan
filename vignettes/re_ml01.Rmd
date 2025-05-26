@@ -1,0 +1,327 @@
+---
+title: "Chapter 10 Exercise"
+author: "Shiyuan"
+date: "2025-04-28"
+output: html_document
+---
+# I. Introduction to the dataset
+The dataset used in this study is derived from the FLUXNET2015 project and was selected from day-by-day observations at the Davos site (CH-Dav) in Switzerland from 1997-2014. The dataset contains ecosystem carbon fluxes (GPP) as well as a variety of meteorological factors (e.g., air temperature, light, barometric pressure, water vapour pressure difference, etc.) with corresponding quality control indicators. The data were initially screened and cleaned to remove missing values and outliers (e.g., -9999), and high-quality observations were retained based on quality control (QC) criteria.
+
+Core variables include:
+
+GPP_NT_VUT_REF: daily-scale total primary productivity (target variable)
+
+SW_IN_F, TA_F, VPD_F, etc.: meteorological factors used for forecasts
+
+# II: Research purpose
+The aim of this study was to build regression models based on meteorological covariates to predict the daily-scale gross primary productivity (GPP) of ecosystems and to assess the performance of different modelling approaches in terms of prediction accuracy. Through model comparison, the driving role of meteorological factors on carbon flux changes was explored to provide data support for understanding the ecosystem carbon cycle.
+
+# III. Research questions
+This study is centred on the following questions:
+
+Given the underlying meteorological variables (SW_IN_F, VPD_F, TA_F), can GPP be effectively predicted?
+
+Which method performs better in GPP prediction, simple linear regression (LM) or K nearest neighbour regression (KNN)?
+
+Is the model performance consistent between the training set and the test set? Are there any overfitting or underfitting problems?
+
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+# Load necessary libraries
+library(dplyr)
+library(ggplot2)
+library(readr)
+library(tidyr)
+library(caret)
+library(recipes)
+library(here)
+library(rsample)
+library(yardstick)
+library(lubridate)
+```
+
+```{r data-prep}
+daily_fluxes <- read.csv(here("data_raw/FLX_CH-Dav_FLUXNET2015_FULLSET_DD_1997-2014_1-3.csv")) |>  
+  select(
+    TIMESTAMP,
+    GPP_NT_VUT_REF,    # Target variable
+    ends_with("_QC"),  # Quality control columns
+    ends_with("_F"),   # Meteorological covariates
+    -contains("JSB")   # Remove unwanted variables
+  ) |>
+  mutate(
+    TIMESTAMP = ymd(TIMESTAMP),  # Convert timestamp
+    across(where(is.numeric), ~na_if(., -9999))  # Replace -9999 with NA
+  ) |> 
+  mutate(
+    GPP_NT_VUT_REF = ifelse(NEE_VUT_REF_QC < 0.8, NA, GPP_NT_VUT_REF),
+    TA_F = ifelse(TA_F_QC < 0.8, NA, TA_F),
+    SW_IN_F = ifelse(SW_IN_F_QC < 0.8, NA, SW_IN_F),
+    LW_IN_F = ifelse(LW_IN_F_QC < 0.8, NA, LW_IN_F),
+    VPD_F = ifelse(VPD_F_QC < 0.8, NA, VPD_F),
+    PA_F = ifelse(PA_F_QC < 0.8, NA, PA_F),
+    P_F = ifelse(P_F_QC < 0.8, NA, P_F),
+    WS_F = ifelse(WS_F_QC < 0.8, NA, WS_F)
+  ) |> 
+  select(-ends_with("_QC"))  # Drop QC columns
+```
+
+```{r plot-distribution}
+
+# Check GPP distribution
+daily_fluxes |> 
+  ggplot(aes(x = GPP_NT_VUT_REF)) + 
+  geom_histogram(bins = 30, fill = "skyblue", color = "black") +
+  theme_classic()
+```
+
+```{r split-data}
+# 2. Split data into training and testing sets
+set.seed(1982)
+split <- initial_split(daily_fluxes, prop = 0.7, strata = "VPD_F")
+daily_fluxes_train <- training(split)
+daily_fluxes_test <- testing(split)
+
+```
+
+
+
+```{r recipe-prep}
+# 3. Create a preprocessing recipe
+pp <- recipe(GPP_NT_VUT_REF ~ SW_IN_F + VPD_F + TA_F, data = daily_fluxes_train |> drop_na()) |> 
+  step_BoxCox(all_predictors()) |> 
+  step_center(all_numeric_predictors()) |>
+  step_scale(all_numeric_predictors())
+```
+
+
+```{r model-training}
+
+# 4. Fit models
+# Linear Regression
+mod_lm <- train(
+  pp, 
+  data = daily_fluxes_train |> drop_na(), 
+  method = "lm",
+  trControl = trainControl(method = "none"),
+  metric = "RMSE"
+)
+
+# K-Nearest Neighbors (KNN)
+mod_knn <- train(
+  pp, 
+  data = daily_fluxes_train |> drop_na(), 
+  method = "knn",
+  tuneGrid = data.frame(k = 8),
+  trControl = trainControl(method = "none"),
+  metric = "RMSE"
+)
+```
+
+```{r eval-function}
+
+# 5. Define model evaluation function
+eval_model <- function(mod, df_train, df_test) {
+  
+  # Predict on training and testing sets
+  df_train_pred <- df_train |> 
+    drop_na() |> 
+    mutate(fitted = predict(mod, newdata = df_train |> drop_na()))
+  
+  df_test_pred <- df_test |> 
+    drop_na() |> 
+    mutate(fitted = predict(mod, newdata = df_test |> drop_na()))
+  
+  # Calculate metrics
+  metrics_train <- metrics(df_train_pred, truth = GPP_NT_VUT_REF, estimate = fitted)
+  metrics_test <- metrics(df_test_pred, truth = GPP_NT_VUT_REF, estimate = fitted)
+  
+  # Extract RMSE and R-squared
+  rmse_train <- metrics_train |> filter(.metric == "rmse") |> pull(.estimate)
+  rsq_train <- metrics_train |> filter(.metric == "rsq") |> pull(.estimate)
+  
+  rmse_test <- metrics_test |> filter(.metric == "rmse") |> pull(.estimate)
+  rsq_test <- metrics_test |> filter(.metric == "rsq") |> pull(.estimate)
+  
+  # Create plots
+  plot_train <- ggplot(df_train_pred, aes(x = GPP_NT_VUT_REF, y = fitted)) +
+    geom_point(alpha = 0.3) +
+    geom_smooth(method = "lm", color = "red", se = FALSE) +
+    geom_abline(slope = 1, intercept = 0, linetype = "dotted") +
+    labs(
+      title = "Training Set",
+      subtitle = bquote(italic(R)^2 == .(format(rsq_train, digits = 2)) ~~ RMSE == .(format(rmse_train, digits = 3)))
+    ) +
+    theme_classic()
+  
+  plot_test <- ggplot(df_test_pred, aes(x = GPP_NT_VUT_REF, y = fitted)) +
+    geom_point(alpha = 0.3) +
+    geom_smooth(method = "lm", color = "red", se = FALSE) +
+    geom_abline(slope = 1, intercept = 0, linetype = "dotted") +
+    labs(
+      title = "Test Set",
+      subtitle = bquote(italic(R)^2 == .(format(rsq_test, digits = 2)) ~~ RMSE == .(format(rmse_test, digits = 3)))
+    ) +
+    theme_classic()
+  
+  # Combine plots
+  cowplot::plot_grid(plot_train, plot_test)
+}
+```
+
+```{r eval-and-plot}
+
+# 6. Evaluate models and plot
+# Evaluate Linear Regression
+plot_lm <- eval_model(mod = mod_lm, df_train = daily_fluxes_train, df_test = daily_fluxes_test)
+print(plot_lm)
+
+# Evaluate KNN
+plot_knn <- eval_model(mod = mod_knn, df_train = daily_fluxes_train, df_test = daily_fluxes_test)
+print(plot_knn)
+
+
+
+```
+#IV：Bias-variance trade-off
+4.1 Why is the difference between the evaluation of the KNN model in the training and test sets greater than that of the linear regression model?
+
+The KNN model is a low bias, high variance learning method. Because KNN directly remembers the training samples and relies on neighbouring data points in its predictions, the model is able to achieve very low errors on the training set. However, because it is very sensitive to the training data, it tends to exhibit greater error volatility on the test set. In contrast, the linear regression model has a higher bias but lower variance, and therefore the difference in performance between the training and test sets is relatively small.
+
+In summary, KNN ‘overfits’ the details on the training set, resulting in a loss of generalisation, whereas linear regression is more stable but may underfit some complex relationships.
+
+4.2 Why does KNN perform better than linear regression on the test set?
+
+In this study, the relationship between GPP and meteorological variables (SW_IN_F, TA_F, VPD_F) may not be completely linear, with a certain degree of non-linear characteristics.The KNN model, as a non-parametric method, is able to capture complex local variations more flexibly, and therefore achieves lower error and higher goodness-of-fit on the test set. Despite some high variance issues, KNN can better model complex relationships with appropriate k values, thus outperforming linear regression on the test set.
+
+4.3 How to locate KNN and Linear Regression in the bias-variance trade-off framework?
+
+Linear Regression (LR): favours high bias and low variance. The model assumes a linear relationship between the data, limiting model flexibility but improving stability.
+
+KNN model: favours low bias, high variance. Capable of capturing complex local patterns, but prone to overfitting noise and requires careful choice of hyperparameter k.
+
+#V.Assumptions about the change in K
+
+Hypothesis:
+
+As k approaches 1, the KNN model performs extremely well on the training set (low training error), but tends to overfit on the test set, resulting in high test error (high variance).
+
+As k gradually increases closer to the number of samples, the model tends to average over all samples, and both training and testing errors increase (high bias, low variance).
+
+Thus, there exists an intermediate value of k that optimally balances bias and variance for the best generalisation performance.
+
+This is the typical bias-variance tradeoff phenomenon.
+```{r}
+knitr::opts_chunk$set(echo = TRUE)
+
+# Loading the necessary packages
+library(dplyr)
+library(ggplot2)
+library(readr)
+library(tidyr)
+library(caret)
+library(recipes)
+library(here)
+library(yardstick)
+library(lubridate)
+library(rsample)
+library(tibble)
+
+# read data
+daily_fluxes <- read.csv(here("data_raw/FLX_CH-Dav_FLUXNET2015_FULLSET_DD_1997-2014_1-3.csv")) |>  
+  select(
+    TIMESTAMP,
+    GPP_NT_VUT_REF,    
+    ends_with("_QC"),  
+    ends_with("_F"),   
+    -contains("JSB")
+  ) |>
+  mutate(
+    TIMESTAMP = ymd(TIMESTAMP),
+    across(where(is.numeric), ~na_if(., -9999))
+  ) |> 
+  mutate(
+    GPP_NT_VUT_REF = ifelse(NEE_VUT_REF_QC < 0.8, NA, GPP_NT_VUT_REF),
+    TA_F = ifelse(TA_F_QC < 0.8, NA, TA_F),
+    SW_IN_F = ifelse(SW_IN_F_QC < 0.8, NA, SW_IN_F),
+    LW_IN_F = ifelse(LW_IN_F_QC < 0.8, NA, LW_IN_F),
+    VPD_F = ifelse(VPD_F_QC < 0.8, NA, VPD_F),
+    PA_F = ifelse(PA_F_QC < 0.8, NA, PA_F),
+    P_F = ifelse(P_F_QC < 0.8, NA, P_F),
+    WS_F = ifelse(WS_F_QC < 0.8, NA, WS_F)
+  ) |> 
+  select(-ends_with("_QC")) |> 
+  drop_na(GPP_NT_VUT_REF, SW_IN_F, VPD_F, TA_F) 
+
+# Data preprocessing recipe
+pp <- recipe(GPP_NT_VUT_REF ~ SW_IN_F + VPD_F + TA_F, data = daily_fluxes) |> 
+  step_BoxCox(all_of(c("SW_IN_F", "VPD_F"))) |> 
+  step_center(all_numeric_predictors()) |> 
+  step_scale(all_numeric_predictors())
+
+# Define the function that evaluates the MAE of a KNN
+evaluate_knn_mae <- function(k_value) {
+  mod_knn <- train(
+    pp,
+    data = daily_fluxes,
+    method = "knn",
+    tuneGrid = data.frame(k = k_value),
+    trControl = trainControl(method = "none"),
+    metric = "RMSE"
+  )
+  
+  preds <- predict(mod_knn, newdata = daily_fluxes)
+  
+  mae_value <- mae_vec(truth = daily_fluxes$GPP_NT_VUT_REF, estimate = preds)
+  
+  return(mae_value)
+}
+
+# Select a range of k
+k_values <- seq(1, 50, by = 2)
+
+# [Added] actually go run evaluate_knn_mae(k)
+mae_values <- sapply(k_values, evaluate_knn_mae)
+
+# Collation of results
+results_df <- tibble(k = k_values, MAE = mae_values)
+
+# Plotting the K vs MAE curve
+results_df %>%
+  ggplot(aes(x = k, y = MAE)) +
+  geom_line(color = "blue") +
+  geom_point(size = 2) +
+  labs(
+    title = "K-value vs MAE (Daily Data)",
+    x = "Number of Neighbors (k)",
+    y = "Mean Absolute Error (MAE)"
+  ) +
+  theme_minimal()
+
+# find the best k
+best_k <- results_df$k[which.min(results_df$MAE)]
+best_k
+
+
+```
+
+
+# VI. Conclusions and discussion
+In this study, the GPP prediction model based on meteorological factors was successfully constructed using FLUXNET 2015 data through data cleaning, variable screening and quality control. The results of model evaluation showed that:
+
+The simple linear regression model showed a good fit on both the training and test sets, with high R² and low RMSE.
+
+The k-nearest neighbour model (k=8) performed well on the training set, but there was some degree of performance degradation on the test set, suggesting that there may be slight overfitting.
+
+Taken as a whole, the meteorological factors **light (SW_IN_F) and temperature (TA_F)** are important predictors of GPP, while the contribution of water vapour pressure difference (VPD_F) is relatively small but still significant.
+
+Future studies could:
+
+Incorporate more environmental factors (e.g., soil moisture, wind speed, etc.) to enhance the explanatory power of the model;
+
+Attempt non-linear models (e.g., Random Forest, XGBoost) to further enhance prediction performance;
+
+Introduce time series properties or seasonal variation factors to optimise daily-scale GPP forecasts.
