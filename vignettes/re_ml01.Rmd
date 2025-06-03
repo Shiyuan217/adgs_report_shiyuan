@@ -28,7 +28,9 @@ Is the model performance consistent between the training set and the test set? A
 
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = TRUE,
+                      message = FALSE,
+                      warning = FALSE)
 
 # Load necessary libraries
 library(dplyr)
@@ -308,6 +310,7 @@ best_k
 
 ```
 
+This graph shows the relationship between different number of neighbours kkk and Mean Absolute Error (MAE) in the KNN model. The horizontal axis represents the number of neighbours kkk and the vertical axis represents the MAE, it can be seen that the MAE increases rapidly as kkk increases, with the most pronounced change between k=1 and k=5, and then it tends to level off gradually. The maximum value of k shown in the figure is roughly at k=20, after which it fluctuates little. The overall trend shows that the model prediction error tends to stabilise as k increases, which helps to choose an appropriate k value to balance the model complexity and prediction accuracy.
 
 # VI. Conclusions and discussion
 In this study, the GPP prediction model based on meteorological factors was successfully constructed using FLUXNET 2015 data through data cleaning, variable screening and quality control. The results of model evaluation showed that:

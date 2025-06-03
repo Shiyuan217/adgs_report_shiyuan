@@ -28,17 +28,10 @@ What are the trends in summer ozone concentrations in New York? Does it vary ove
 Is there a correlation between meteorological factors (temperature, wind speed, solar radiation) and ozone concentrations?
 
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-```
 
-```{r cars}
+```{r }
 # Load data
 data("airquality")
-
-# View basic data information
-head(airquality)
-summary(airquality)
 
 # Handling of missing values
 airquality <- na.omit(airquality)

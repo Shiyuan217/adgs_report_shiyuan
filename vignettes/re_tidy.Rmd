@@ -1,0 +1,201 @@
+---
+title: "Temporal Dynamics of Soil Organic Carbon Responses to Elevated CO₂"
+author: "Shiyuan"
+date: "2025-05-24"
+output: html_document
+---
+# I. Research Background
+Rising atmospheric CO₂ levels due to anthropogenic activities have significant impacts on terrestrial ecosystems, particularly on soil carbon (C) pools. Soil organic carbon (SOC) is a key component of the global carbon cycle, influencing soil fertility, ecosystem productivity, and carbon sequestration potential. Numerous field experiments worldwide have examined how elevated CO₂ affects SOC, but results are variable due to differences in experimental design, duration, soil type, vegetation, and climatic conditions. To synthesize these findings, meta-analytical approaches such as log response ratios (LRR) are often used, allowing standardized comparisons across experiments and identifying general patterns of CO₂ enrichment effects on SOC over time.
+
+# II. Research Purpose
+This study aims to aggregate data from multiple CO₂ enrichment experiments to quantify the effects of elevated CO₂ on soil organic carbon (SOC) content across different experimental durations. Specifically, it seeks to calculate log response ratios (LRR) of SOC under elevated vs. ambient CO₂ and analyze how these effects vary by experimental phase: early (<3 years), mid (3–6 years), and late (>6 years).
+
+# III Research Question
+How does soil organic carbon (SOC) content change under conditions of elevated carbon dioxide (CO₂) concentration? Does this change vary with the duration of the experiment (early/mid/late)
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE,
+                      message = FALSE,
+                      warning = FALSE)
+
+# Loading required libraries
+library(dplyr)
+library(lubridate)
+library(tidyr)
+library(readr)
+library(stringr)
+library(purrr)
+library(knitr)
+library(here)
+library(janitor)
+```
+
+```{r}
+
+data <- read_csv(here("data_raw", "1249534s1.csv"), skip = 3)
+data_clean <- data |> clean_names()
+data_clean <- data_clean |>
+  mutate(sample_date_clean = parse_date_time(sample_date, orders = c("b Y", "m Y", "Y")))
+
+data_selected <- data_clean |>
+  select(experiment, citation, depth, sample_date, time_years,
+         ambient_co2_6, increased_co2_7,
+         ambient_co2_8, increased_co2_9)
+
+
+
+data_lrr <- data_selected |>
+  filter(!is.na(ambient_co2_6), !is.na(increased_co2_7), !is.na(time_years)) |>
+  mutate(
+    rr = increased_co2_7 / ambient_co2_6,
+    lrr = log(rr),
+    phase = case_when(
+      time_years < 3 ~ "Early",
+      time_years >= 3 & time_years <= 6 ~ "Mid",
+      time_years > 6 ~ "Late",
+      TRUE ~ NA_character_
+    )
+  )
+
+summary_lrr <- data_lrr |>
+  group_by(experiment, phase) |>
+  summarise(
+    mean_rr = mean(rr, na.rm = TRUE),
+    mean_lrr = mean(lrr, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+data_lrr <- data_selected |>
+  filter(
+    !is.na(ambient_co2_6), !is.na(increased_co2_7),
+    !is.na(ambient_co2_8), !is.na(increased_co2_9),
+    !is.na(time_years)
+  ) |>
+  mutate(
+    rr_6_7 = increased_co2_7 / ambient_co2_6,
+    lrr_6_7 = log(rr_6_7),
+    rr_8_9 = increased_co2_9 / ambient_co2_8,
+    lrr_8_9 = log(rr_8_9),
+    phase = case_when(
+      time_years < 3 ~ "Early",
+      time_years >= 3 & time_years <= 6 ~ "Mid",
+      time_years > 6 ~ "Late",
+      TRUE ~ NA_character_
+    )
+  )
+summary_lrr <- data_lrr |>
+  group_by(experiment, phase) |>
+  summarise(
+    mean_rr_6_7 = mean(rr_6_7, na.rm = TRUE),
+    mean_lrr_6_7 = mean(lrr_6_7, na.rm = TRUE),
+    mean_rr_8_9 = mean(rr_8_9, na.rm = TRUE),
+    mean_lrr_8_9 = mean(lrr_8_9, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+
+
+```
+
+
+```{r}
+
+# Loading the necessary libraries
+library(dplyr)
+library(readr)
+library(lubridate)
+library(janitor)
+library(here)
+
+# Read and clean data
+data <- read_csv(here("data_raw", "1249534s1.csv"), skip = 3) |>
+  clean_names() |>
+  mutate(sample_date_clean = parse_date_time(sample_date, orders = c("b Y", "m Y", "Y")))
+
+# Select and calculate RR and LRR
+data_lrr <- data |>
+  filter(
+    !is.na(ambient_co2_6), !is.na(increased_co2_7),
+    !is.na(ambient_co2_8), !is.na(increased_co2_9),
+    !is.na(time_years)
+  ) |>
+  mutate(
+    rr_6_7 = increased_co2_7 / ambient_co2_6,
+    lrr_6_7 = log(rr_6_7),
+    rr_8_9 = increased_co2_9 / ambient_co2_8,
+    lrr_8_9 = log(rr_8_9),
+    phase = case_when(
+      time_years < 3 ~ "Early",
+      time_years >= 3 & time_years <= 6 ~ "Mid",
+      time_years > 6 ~ "Late",
+      TRUE ~ NA_character_
+    )
+  )
+
+# Mean RR and LRR for all samples by stage
+summary_rr_lrr <- data_lrr |>
+  group_by(phase) |>
+  summarise(
+    mean_rr_6_7 = mean(rr_6_7, na.rm = TRUE),
+    mean_lrr_6_7 = mean(lrr_6_7, na.rm = TRUE),
+    mean_rr_8_9 = mean(rr_8_9, na.rm = TRUE),
+    mean_lrr_8_9 = mean(lrr_8_9, na.rm = TRUE),
+    n = n(),
+    .groups = "drop"
+  )
+
+# Print the results table
+print(summary_rr_lrr)
+```
+
+
+```{r}
+# Load Mapping Gallery
+
+library(ggplot2)
+
+# transfer
+summary_rr_lrr <- summary_rr_lrr |>
+  mutate(phase = str_to_lower(phase))  # 使用 stringr::str_to_lower 统一小写
+
+# pivot_longer
+summary_long <- summary_rr_lrr |>
+  pivot_longer(cols = c(mean_lrr_6_7, mean_lrr_8_9),
+               names_to = "comparison",
+               values_to = "mean_lrr") |>
+  mutate(
+    comparison = recode(comparison,
+                        mean_lrr_6_7 = "CO2_6 vs CO2_7",
+                        mean_lrr_8_9 = "CO2_8 vs CO2_9"),
+    phase = factor(phase, levels = c("early", "mid", "late"))  # 指定顺序
+  )
+
+# draw picture
+ggplot(summary_long, aes(x = phase, y = mean_lrr, color = comparison, group = comparison)) +
+  geom_line(size = 1.2) +
+  geom_point(size = 3) +
+  labs(
+    title = "Mean Log Response Ratio (LRR) Across Phases",
+    x = "Phase",
+    y = "Mean LRR",
+    color = "Comparison"
+  ) +
+  theme_minimal(base_size = 14) +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold"),
+    legend.position = "top"
+  )
+
+```
+
+
+# IV.Data analysis
+
+For the comparison of CO2_8 vs CO2_9 (blue line): in the early stage, Mean LRR is at a relatively high level (around 0.06); as the stage progresses to the mid stage, Mean LRR decreases (to around 0.025); and in the late stage, it decreases further, even approaching to less than 0 (around -0.005), showing a clear trend of decreasing with advancing stage. The trend of decreasing with the advancement of the stage is obvious.
+- For the comparison of CO2_6 vs CO2_7 (red line): in the early stage, the Mean LRR is low and positive (~0.01); in the mid stage, there is a small increase (to ~0.018); however, in the late stage, there is a significant decrease to negative (~-0.03), with a clear decreasing trend in the late stage as a whole.
+ 
+Overall, the Mean LRR of the two groups showed different characteristics with the stage changes, CO2_8 vs CO2_9 was higher in the early stage but continued to decline, CO2_6 vs CO2_7 was stable in the early stage, increased slightly in the mid stage, and then declined sharply in the late stage to become negative.
+
+
+# IV. Conclution and Discussion 
+In this study, it was found that the soil organic carbon (SOC) content varied with time stages at elevated CO₂ concentrations. The SOC increased significantly in the early stage, the effect weakened or became negative in the middle stage, and slightly recovered in the late stage. This suggests that the effect of elevated CO₂ on soil carbon does not always increase, but varies with time. The results suggest that long-term experiments can more realistically reflect the ecosystem response to elevated CO₂ than short-term experiments, and thus more long-term studies are needed to better predict the trend of soil carbon changes in the future.

@@ -1,0 +1,116 @@
+---
+title: "Construction of the GPP prediction model based on stepwise regression"
+author: "Shiyuan"
+date: "2025-03-25"
+output: html_document
+---
+# Background 
+
+In ecosystem flux studies, net primary productivity (GPP) is an important measure of vegetation photosynthesis. Understanding which environmental factors best predict GPP is essential for modelling ecosystem function and assessing the impact of climate change on carbon fluxes. The aim of this exercise is to construct a multiple regression model with GPP as the response variable and multiple environmental predictors as explanatory variables using a dataset of flux observations at the half-hourly scale.
+
+# Objective 
+
+The objective of this report is to gradually screen out the most explanatory variables from a set of possible predictor variables through stepwise forward selection and construct a linear regression model that is optimal for GPP. The algorithm used refers to the stepwise regression method described in Section 9.3.3.1.
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE,
+                      message = FALSE,
+                      warning = FALSE)
+
+# processing
+library(readr)
+library(dplyr)
+library(broom)
+library(ggplot2)
+library(knitr)
+library(tibble)
+library(purrr)
+library(cowplot)
+library(here)
+
+# read data
+data <- read_csv(here("data_raw/df_for_stepwise_regression.csv"))  
+# Specifying Response Variables
+response <- "GPP_NT_VUT_REF"
+predictors <- setdiff(names(data), response)
+
+# Retain only numeric predictor variables
+numeric_predictors <- predictors[sapply(data[predictors], is.numeric)]
+
+# Filling in missing values and standardising numerical predictor variables
+data_clean <- data %>%
+  mutate(across(where(is.numeric), ~ifelse(is.na(.), mean(., na.rm = TRUE), .))) %>%
+  mutate(across(all_of(numeric_predictors), ~as.numeric(scale(.))))
+
+# Fit all univariate models
+single_models <- lapply(numeric_predictors, function(pred) {
+  formula <- as.formula(paste(response, "~", pred))
+  model <- lm(formula, data = data_clean)
+  tibble(
+    predictor = pred,
+    r_squared = summary(model)$r.squared,
+    aic = AIC(model),
+    model = list(model)
+  )
+}) %>%
+  bind_rows()
+```
+
+```{r,fig.width=10,fig.height=6}
+# Find the model with the largest R²
+best_model_info <- single_models %>%
+  arrange(desc(r_squared)) %>%
+  slice(1)
+
+best_model_info %>%
+  select(predictor, r_squared, aic) %>%
+  knitr::kable(caption = "Univariate model with the highest R²")
+
+par(mfrow = c(2, 2))
+plot(best_model_info$model[[1]])
+par(mfrow = c(1, 1))
+
+summary(best_model_info$model[[1]]) %>%
+  tidy() %>%
+  knitr::kable(digits = 4, caption = "Estimation of coefficients of the optimal model")
+
+# Create diagrams for each model
+model_plots <- lapply(single_models$predictor, function(pred) {
+  ggplot(data_clean, aes_string(x = pred, y = response)) +
+    geom_point(size = 0.75) +
+    geom_smooth(method = "lm", color = "red", fullrange = TRUE) +
+    labs(
+      title = paste("Linear model:", response, "vs", pred),
+      x = pred,
+      y = response
+    ) +
+    theme_classic()
+})
+
+p <-plot_grid(
+  plotlist = model_plots,
+  ncol=3
+) 
+
+ggsave(
+ here("figures","chapter9_combined_plot.png"),
+ plot = p,
+ width = 10,
+ height=15
+)
+
+knitr::include_graphics(here("figures","chapter9_combined_plot.png"))
+  
+```
+
+# Data analysis
+
+
+This figure shows the univariate linear relationship between different meteorological variables and total vegetation primary productivity (GPP_NT_VUT_REF), with each subplot corresponding to a scatterplot and fitted regression line (in red) between a predictor (e.g., temperature, solar radiation, precipitation, etc.) and GPP. The aim of this analysis is to assess the explanatory power of each variable on GPP for subsequent multivariate modelling.
+
+As can be seen from the figure, there are significant differences in the extent to which different variables explain GPP. For example, air temperature (TA_F, TA_F_MDS), saturated water vapour pressure difference (VPD_F) and short-wave radiation (SW_IN_F, SW_IN_F_MDS) were all significantly and positively correlated with the GPP, showing a clearer linear trend, suggesting that light and temperature were the important drivers of vegetation photosynthesis. In contrast, precipitation (P_F) showed a negative trend of correlation with GPP, possibly reflecting the possibility of GPP suppression due to radiation limitation or soil saturation under high precipitation scenarios. In addition, the relationship between some variables (e.g., PA_F) and GPP was weak or close to zero, suggesting a small independent role.
+
+# Conclusion
+
+Through the univariate linear regression analysis of different meteorological factors and GPP in this study, it was found that temperature, radiation and vapor pressure difference were the main positive driving factors, while the influences of precipitation and wind speed were relatively complex and even showed a negative correlation trend. This result provides a basis for the subsequent establishment of a multivariate prediction model and also verifies the key role of temperature and radiation in the process of regulating carbon flux. In the future, multivariate modeling and ecological process mechanisms should be combined to deeply explore the changing patterns of ecosystem carbon sink functions under extreme climates.
