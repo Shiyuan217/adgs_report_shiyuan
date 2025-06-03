@@ -410,9 +410,8 @@ data_lrr &lt;- data_selected |&gt;
       time_years &gt; 6 ~ &quot;Late&quot;,
       TRUE ~ NA_character_
     )
-  )
-
-summary_lrr &lt;- data_lrr |&gt;
+  )</code></pre>
+<pre class="r"><code>summary_lrr &lt;- data_lrr |&gt;
   group_by(experiment, phase) |&gt;
   summarise(
     mean_rr = mean(rr, na.rm = TRUE),
@@ -447,7 +446,7 @@ summary_lrr &lt;- data_lrr |&gt;
     mean_lrr_8_9 = mean(lrr_8_9, na.rm = TRUE),
     .groups = &quot;drop&quot;
   )</code></pre>
-<pre class="r"><code># Loading the necessary libraries
+<pre class="r"><code>#Loading the necessary libraries
 library(dplyr)
 library(readr)
 library(lubridate)

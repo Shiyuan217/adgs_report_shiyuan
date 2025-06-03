@@ -104,7 +104,7 @@ knitr::include_graphics(here("figures","chapter9_combined_plot.png"))
   
 ```
 
-# result analysis
+# Result analysis
 
 
 This figure shows the univariate linear relationship between different meteorological variables and total vegetation primary productivity (GPP_NT_VUT_REF), with each subplot corresponding to a scatterplot and fitted regression line (in red) between a predictor (e.g., temperature, solar radiation, precipitation, etc.) and GPP. The aim of this analysis is to assess the explanatory power of each variable on GPP for subsequent multivariate modelling.

@@ -13,7 +13,7 @@ GPP_NT_VUT_REF: daily-scale total primary productivity (target variable)
 
 SW_IN_F, TA_F, VPD_F, etc.: meteorological factors used for forecasts
 
-# II: Research purpose
+# II. Research purpose
 The aim of this study was to build regression models based on meteorological covariates to predict the daily-scale gross primary productivity (GPP) of ecosystems and to assess the performance of different modelling approaches in terms of prediction accuracy. Through model comparison, the driving role of meteorological factors on carbon flux changes was explored to provide data support for understanding the ecosystem carbon cycle.
 
 # III. Research questions
@@ -218,6 +218,7 @@ As k gradually increases closer to the number of samples, the model tends to ave
 Thus, there exists an intermediate value of k that optimally balances bias and variance for the best generalisation performance.
 
 This is the typical bias-variance tradeoff phenomenon.
+
 ```{r}
 knitr::opts_chunk$set(echo = TRUE)
 

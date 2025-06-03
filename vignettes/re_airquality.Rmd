@@ -13,7 +13,7 @@ Data set basic information:
 Observations (number of rows): 153 days
 Variables (number of columns): 6
 
-# II: Research purpose
+# II. Research purpose
 With increasing urbanisation, air quality problems are becoming more and more prominent, especially during high summer temperatures, when ozone pollution has a great impact on human health and urban ecosystems. The main objective of this study is to explore the temporal variation patterns of ozone concentration and its relationship with meteorological factors (temperature, wind speed, solar radiation) by analysing the summer air quality data of New York City in 1973, with a view to providing data support and scientific basis for understanding the mechanism of ozone generation and meteorological drivers.
 Specific objectives include:
 
