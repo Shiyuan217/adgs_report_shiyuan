@@ -188,24 +188,26 @@ print(plot_knn)
 
 
 ```
-#IV：Bias-variance trade-off
-4.1 Why is the difference between the evaluation of the KNN model in the training and test sets greater than that of the linear regression model?
+
+# IV：Bias-variance trade-off
+
+1. Why is the difference between the evaluation of the KNN model in the training and test sets greater than that of the linear regression model?
 
 The KNN model is a low bias, high variance learning method. Because KNN directly remembers the training samples and relies on neighbouring data points in its predictions, the model is able to achieve very low errors on the training set. However, because it is very sensitive to the training data, it tends to exhibit greater error volatility on the test set. In contrast, the linear regression model has a higher bias but lower variance, and therefore the difference in performance between the training and test sets is relatively small.
 
 In summary, KNN ‘overfits’ the details on the training set, resulting in a loss of generalisation, whereas linear regression is more stable but may underfit some complex relationships.
 
-4.2 Why does KNN perform better than linear regression on the test set?
+2. Why does KNN perform better than linear regression on the test set?
 
 In this study, the relationship between GPP and meteorological variables (SW_IN_F, TA_F, VPD_F) may not be completely linear, with a certain degree of non-linear characteristics.The KNN model, as a non-parametric method, is able to capture complex local variations more flexibly, and therefore achieves lower error and higher goodness-of-fit on the test set. Despite some high variance issues, KNN can better model complex relationships with appropriate k values, thus outperforming linear regression on the test set.
 
-4.3 How to locate KNN and Linear Regression in the bias-variance trade-off framework?
+3. How to locate KNN and Linear Regression in the bias-variance trade-off framework?
 
 Linear Regression (LR): favours high bias and low variance. The model assumes a linear relationship between the data, limiting model flexibility but improving stability.
 
 KNN model: favours low bias, high variance. Capable of capturing complex local patterns, but prone to overfitting noise and requires careful choice of hyperparameter k.
 
-#V.Assumptions about the change in K
+# V.Assumptions about the change in K
 
 Hypothesis:
 
@@ -313,6 +315,7 @@ best_k
 This graph shows the relationship between different number of neighbours kkk and Mean Absolute Error (MAE) in the KNN model. The horizontal axis represents the number of neighbours kkk and the vertical axis represents the MAE, it can be seen that the MAE increases rapidly as kkk increases, with the most pronounced change between k=1 and k=5, and then it tends to level off gradually. The maximum value of k shown in the figure is roughly at k=20, after which it fluctuates little. The overall trend shows that the model prediction error tends to stabilise as k increases, which helps to choose an appropriate k value to balance the model complexity and prediction accuracy.
 
 # VI. Conclusions and discussion
+
 In this study, the GPP prediction model based on meteorological factors was successfully constructed using FLUXNET 2015 data through data cleaning, variable screening and quality control. The results of model evaluation showed that:
 
 The simple linear regression model showed a good fit on both the training and test sets, with high R² and low RMSE.

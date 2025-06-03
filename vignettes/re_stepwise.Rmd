@@ -13,7 +13,7 @@ In ecosystem flux studies, net primary productivity (GPP) is an important measur
 The objective of this report is to gradually screen out the most explanatory variables from a set of possible predictor variables through stepwise forward selection and construct a linear regression model that is optimal for GPP. The algorithm used refers to the stepwise regression method described in Section 9.3.3.1.
 
 
-```{r setup, include=FALSE}
+```{r setup, message=FALSE, warning=FALSE}
 knitr::opts_chunk$set(echo = TRUE,
                       message = FALSE,
                       warning = FALSE)
@@ -104,7 +104,7 @@ knitr::include_graphics(here("figures","chapter9_combined_plot.png"))
   
 ```
 
-# Data analysis
+# result analysis
 
 
 This figure shows the univariate linear relationship between different meteorological variables and total vegetation primary productivity (GPP_NT_VUT_REF), with each subplot corresponding to a scatterplot and fitted regression line (in red) between a predictor (e.g., temperature, solar radiation, precipitation, etc.) and GPP. The aim of this analysis is to assess the explanatory power of each variable on GPP for subsequent multivariate modelling.

@@ -156,7 +156,7 @@ library(ggplot2)
 
 # transfer
 summary_rr_lrr <- summary_rr_lrr |>
-  mutate(phase = str_to_lower(phase))  # 使用 stringr::str_to_lower 统一小写
+  mutate(phase = str_to_lower(phase)) 
 
 # pivot_longer
 summary_long <- summary_rr_lrr |>
@@ -167,7 +167,7 @@ summary_long <- summary_rr_lrr |>
     comparison = recode(comparison,
                         mean_lrr_6_7 = "CO2_6 vs CO2_7",
                         mean_lrr_8_9 = "CO2_8 vs CO2_9"),
-    phase = factor(phase, levels = c("early", "mid", "late"))  # 指定顺序
+    phase = factor(phase, levels = c("early", "mid", "late"))  
   )
 
 # draw picture
@@ -188,11 +188,14 @@ ggplot(summary_long, aes(x = phase, y = mean_lrr, color = comparison, group = co
 
 ```
 
+ CO2_8 vs CO2_9 is SOC LRR
+ 
+ CO2_6 vs CO2_7 is CO2 LRR
 
-# IV.Data analysis
+# IV.Result analysis
 
-For the comparison of CO2_8 vs CO2_9 (blue line): in the early stage, Mean LRR is at a relatively high level (around 0.06); as the stage progresses to the mid stage, Mean LRR decreases (to around 0.025); and in the late stage, it decreases further, even approaching to less than 0 (around -0.005), showing a clear trend of decreasing with advancing stage. The trend of decreasing with the advancement of the stage is obvious.
-- For the comparison of CO2_6 vs CO2_7 (red line): in the early stage, the Mean LRR is low and positive (~0.01); in the mid stage, there is a small increase (to ~0.018); however, in the late stage, there is a significant decrease to negative (~-0.03), with a clear decreasing trend in the late stage as a whole.
+For the comparison of CO2_8 vs CO2_9 (SOC LRR)(blue line): in the early stage, Mean SOC LRR is at a relatively high level (around 0.06); as the stage progresses to the mid stage, Mean SOC LRR decreases (to around 0.025); and in the late stage, it decreases further, even approaching to less than 0 (around -0.005), showing a clear trend of decreasing with advancing stage. The trend of decreasing with the advancement of the stage is obvious.
+- For the comparison of CO2_6 vs CO2_7 (CO2 LRR)(red line): in the early stage, the Mean CO2 LRR is low and positive (~0.01); in the mid stage, there is a small increase (to ~0.018); however, in the late stage, there is a significant decrease to negative (~-0.03), with a clear decreasing trend in the late stage as a whole.
  
 Overall, the Mean LRR of the two groups showed different characteristics with the stage changes, CO2_8 vs CO2_9 was higher in the early stage but continued to decline, CO2_6 vs CO2_7 was stable in the early stage, increased slightly in the mid stage, and then declined sharply in the late stage to become negative.
 
