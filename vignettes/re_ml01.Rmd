@@ -4,7 +4,7 @@ author: "Shiyuan"
 date: "2025-04-28"
 output: html_document
 ---
-# I. Introduction to the dataset
+# Introduction to the dataset
 The dataset used in this study is derived from the FLUXNET2015 project and was selected from day-by-day observations at the Davos site (CH-Dav) in Switzerland from 1997-2014. The dataset contains ecosystem carbon fluxes (GPP) as well as a variety of meteorological factors (e.g., air temperature, light, barometric pressure, water vapour pressure difference, etc.) with corresponding quality control indicators. The data were initially screened and cleaned to remove missing values and outliers (e.g., -9999), and high-quality observations were retained based on quality control (QC) criteria.
 
 Core variables include:
@@ -13,10 +13,10 @@ GPP_NT_VUT_REF: daily-scale total primary productivity (target variable)
 
 SW_IN_F, TA_F, VPD_F, etc.: meteorological factors used for forecasts
 
-# II. Research purpose
+# Research purpose
 The aim of this study was to build regression models based on meteorological covariates to predict the daily-scale gross primary productivity (GPP) of ecosystems and to assess the performance of different modelling approaches in terms of prediction accuracy. Through model comparison, the driving role of meteorological factors on carbon flux changes was explored to provide data support for understanding the ecosystem carbon cycle.
 
-# III. Research questions
+# Research questions
 This study is centred on the following questions:
 
 Given the underlying meteorological variables (SW_IN_F, VPD_F, TA_F), can GPP be effectively predicted?
@@ -189,7 +189,7 @@ print(plot_knn)
 
 ```
 
-# IV：Bias-variance trade-off
+# Bias-variance trade-off
 
 1. Why is the difference between the evaluation of the KNN model in the training and test sets greater than that of the linear regression model?
 
@@ -207,7 +207,7 @@ Linear Regression (LR): favours high bias and low variance. The model assumes a 
 
 KNN model: favours low bias, high variance. Capable of capturing complex local patterns, but prone to overfitting noise and requires careful choice of hyperparameter k.
 
-# V.Assumptions about the change in K
+# Assumptions about the change in K
 
 Hypothesis:
 
@@ -315,7 +315,7 @@ best_k
 
 This graph shows the relationship between different number of neighbours kkk and Mean Absolute Error (MAE) in the KNN model. The horizontal axis represents the number of neighbours kkk and the vertical axis represents the MAE, it can be seen that the MAE increases rapidly as kkk increases, with the most pronounced change between k=1 and k=5, and then it tends to level off gradually. The maximum value of k shown in the figure is roughly at k=20, after which it fluctuates little. The overall trend shows that the model prediction error tends to stabilise as k increases, which helps to choose an appropriate k value to balance the model complexity and prediction accuracy.
 
-# VI. Conclusions and discussion
+# Conclusions and discussion
 
 In this study, the GPP prediction model based on meteorological factors was successfully constructed using FLUXNET 2015 data through data cleaning, variable screening and quality control. The results of model evaluation showed that:
 
