@@ -1,5 +1,5 @@
 ---
-title: "Chapter 10 Exercise"
+title: "Comparison of Linear Regression and KNN Models for GPP Estimation"
 author: "Shiyuan"
 date: "2025-04-28"
 output: html_document
